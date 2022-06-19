@@ -1,0 +1,63 @@
+/* Query 1 */
+SELECT C.[CustomerId],
+       sum(N.UnitPrice*N.quantity) AS "total_paid_money"
+FROM Track T
+JOIN Album A ON A.[AlbumId] = T.[AlbumId]
+JOIN Artist R ON R.[ArtistId] =A.[ArtistId]
+JOIN [InvoiceLine] N ON N.[TrackId] = T.[TrackId]
+JOIN [Invoice] C ON C.[InvoiceId] = N.[InvoiceId]
+JOIN [Customer] M ON M.[CustomerId] = C.[CustomerId]
+WHERE R.Name like
+    (SELECT Name
+     FROM
+       (SELECT Sum(N.[UnitPrice]*N.quantity) AS "sumy",
+               A.[ArtistId],
+               R.[Name]
+        FROM Track T
+        JOIN Album A ON A.[AlbumId] = T.[AlbumId]
+        JOIN Artist R ON R.[ArtistId] =A.[ArtistId]
+        JOIN [InvoiceLine] N ON N.[TrackId] = T.[TrackId]
+        GROUP BY A.[ArtistId],
+                 R.[Name]
+        ORDER BY Sum(N.[UnitPrice]*N.quantity) DESC
+        LIMIT 1))
+GROUP BY C.[CustomerId]
+ORDER BY Sum(N.[UnitPrice]*N.quantity) DESC
+LIMIT 10;
+
+/* Query 2 */
+SELECT A.[Title] AS "Album_Title",
+       Count(*) AS "Count_times"
+FROM [InvoiceLine] I
+JOIN [Track] T ON T.[TrackId] = I.[TrackId]
+JOIN [Album] A ON A.[AlbumId] = T.[AlbumId]
+GROUP BY A.[Title]
+ORDER BY Count(*) DESC
+LIMIT 5;
+
+/* Query 3 */
+SELECT P.Name,
+       COUNT (*) AS "number_of_rock_tracks"
+FROM [Track] T
+JOIN Genre G ON G.[GenreId] =T.[GenreId]
+JOIN [PlaylistTrack] PLT ON PLT.[TrackId] =T.[TrackId]
+JOIN [Playlist] P ON P.[PlaylistId] =PLT.[PlaylistId]
+WHERE G.Name like "Rock"
+GROUP BY P.Name
+ORDER BY number_of_rock_tracks DESC ;
+
+/* Query 4 */ WITH T1 AS
+  (SELECT *
+   FROM [Track] T
+   WHERE T.[Milliseconds] >
+       (SELECT AVG([Track].[Milliseconds])
+        FROM [Track]))
+SELECT C.[CustomerId],
+       Sum(I.[UnitPrice]) AS "Total_Purchase"
+FROM T1
+JOIN [InvoiceLine] I ON I.[TrackId]=T1.TrackId
+JOIN [Invoice] N ON N.[InvoiceId] = I.[InvoiceId]
+JOIN [Customer] C ON C.[CustomerId]=N.[CustomerId]
+GROUP BY C.[CustomerId]
+ORDER BY Total_Purchase DESC
+LIMIT 10
